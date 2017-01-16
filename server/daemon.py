@@ -211,3 +211,12 @@ class Daemon(util.LoggedClass):
 
         If the daemon has not been queried yet this returns None.'''
         return self._height
+
+    async def masternode_broadcast(self, params):
+        '''Broadcast a transaction to the network.'''
+        return await self._send_single('masternodebroadcast', ['relay',params[0],])
+
+    async def masternode_status(self, params):
+        '''Return the masternode status.'''
+        masternode_info = await self._send_single('masternodelist', ['status',params[0],])
+        return masternode_info[params[0]]
