@@ -118,6 +118,8 @@ class ElectrumX(SessionBase):
             'server.peers.subscribe': self.peers_subscribe,
             'server.version': self.server_version,
         }
+        self.subscribe_mns = False
+        self.mns = set()
 
     def sub_count(self):
         return len(self.hashX_subs)
@@ -150,6 +152,17 @@ class ElectrumX(SessionBase):
             es = '' if len(matches) == 1 else 'es'
             self.log_info('notified of {:,d} address{}'
                           .format(len(matches), es))
+
+        if self.subscribe_mns:
+            for masternode in self.mns:
+                status = await self.daemon.masternodestatus([masternode,])
+                payload = {
+                    'id': None,
+                    'method': 'masternode.subscribe',
+                    'params': [masternode],
+                    'result': status,
+                }
+                self.encode_and_send_payload(payload)
 
     def height(self):
         '''Return the current flushed database height.'''
