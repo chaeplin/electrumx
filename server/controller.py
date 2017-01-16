@@ -90,6 +90,8 @@ class Controller(util.LoggedClass):
              'transaction.get transaction.get_merkle utxo.get_address'),
             ('server',
              'banner donation_address'),
+            ('masternode',
+             'announce.broadcast subscribe'),
         ]
         self.electrumx_handlers = {'.'.join([prefix, suffix]):
                                    getattr(self, suffix.replace('.', '_'))
@@ -873,6 +875,36 @@ class Controller(util.LoggedClass):
         if index >= len(tx.outputs):
             return None
         return self.coin.address_from_script(tx.outputs[index].pk_script)
+
+    # Masternode command handlers
+
+    async def announce_broadcast(self, params):
+        '''Pass through the parameters to the daemon.
+
+        An ugly API: current Electrum clients only pass the raw
+        transaction in hex and expect error messages to be returned in
+        the result field.  And the server shouldn't be doing the client's
+        user interface job here.
+        '''
+        try:
+            mnb_hash = await self.daemon.masternode_broadcast(params)
+            return mnb_hash
+        except DaemonError as e:
+            error = e.args[0]
+            message = error['message']
+            self.log_info('masternode_broadcast: {}'.format(message))
+            return (
+                'The masternode broadcast was rejected.  ({})\n[{}]'
+                .format(message, params[0])
+            )
+
+    async def subscribe(self, params):
+        '''Returns the status of masternode.'''
+        result = await self.daemon.masternode_status(params)
+        if result is not None:
+            self.mns.add(params[0])
+            self.subscribe_mns = True
+        return result
 
     # Client RPC "server" command handlers
 
